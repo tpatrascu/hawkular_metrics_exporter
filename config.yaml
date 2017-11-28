@@ -3,13 +3,12 @@ collect_metrics:
   - cpu/usage_rate
   - memory/request
   - memory/usage
-  - filesystem/usage
   - network/rx_rate
   - network/tx_rate
 
 hawkular_metrics_client:
+  concurrency: 10
   scheme: https
-  host: hawkular-metrics-openshift-infra.127.0.0.1.nip.io
   port: 443
   path: hawkular/metrics
-  token: ISHOcWPLS4jAFq3taju_Fs8-V4tl58k8xy_2fEoBO9E
+  token: WFVJzG17om_eDGeJq3M_bm9jKHVoCVLPW0VNlwHAQAw
