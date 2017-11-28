@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import yaml
+import yaml, json
 import argparse
 import http.server
 import socketserver
@@ -38,17 +38,20 @@ def get_metric_data(metric_definition):
         MetricType.Gauge, metric_definition['id'], limit=1)
         
     # parse hawkular labels and convert to prometheus format
-    metric_definition_labels = metric_definition['tags']['labels'].split(',')
-    labels = {k: v for (k, v) in zip(
-              [x.split(':')[0] for x in metric_definition_labels],
-              [x.split(':')[1] for x in metric_definition_labels])}
+    try:
+        metric_definition_labels = metric_definition['tags']['labels'].split(',')
+        labels = {k: v for (k, v) in zip(
+                [x.split(':')[0] for x in metric_definition_labels],
+                [x.split(':')[1] for x in metric_definition_labels])}
 
-    prometheus_labels = ''
-    for k, v in labels.items():
-        prometheus_labels += '{}="{}",'.format(k, v)
-    prometheus_labels = prometheus_labels[:-1]
+        prometheus_labels = ''
+        for k, v in labels.items():
+            prometheus_labels += '{}="{}",'.format(k, v)
+        prometheus_labels = ',{},'.format(prometheus_labels[:-1])
+    except IndexError:
+        prometheus_labels = ''
 
-    row = '{}{{pod_name="{}",namespace_name="{}",nodename="{}",{},}} {}\n'.format(
+    row = '{}{{pod_name="{}",namespace_name="{}",nodename="{}"{}}} {}\n'.format(
         metric_definition['tags']['descriptor_name'],
         metric_definition['tags']['pod_name'],
         metric_definition['tags']['namespace_name'],
