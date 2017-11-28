@@ -6,9 +6,18 @@ collect_metrics:
   - network/rx_rate
   - network/tx_rate
 
-hawkular_metrics_client:
+tenants:
+  - hawkular-exporter
+  - default
+  - openshift-infra
+
+http_server:
+  port: 8080
+
+hawkular_client:
   concurrency: 10
   scheme: https
+  host: hawkular-metrics-openshift-infra.127.0.0.1.nip.io
   port: 443
   path: hawkular/metrics
   token: WFVJzG17om_eDGeJq3M_bm9jKHVoCVLPW0VNlwHAQAw
