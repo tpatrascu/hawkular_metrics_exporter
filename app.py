@@ -98,7 +98,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         with concurrent.futures.ThreadPoolExecutor(max_workers=config['hawkular_client']['concurrency']) as executor:
             # get metric definitions in parallel
             future_to_metric_definitions = {executor.submit(get_metric_definitions, tenant_id):
-                tenant_id for tenant_id in config['tenants']
+                tenant_id for tenant_id in config['projects']
             }
             for future in concurrent.futures.as_completed(future_to_metric_definitions):
                 tenant_name = future_to_metric_definitions[future]

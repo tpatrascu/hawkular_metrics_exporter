@@ -14,6 +14,44 @@ parameters:
     required: true
 objects:
 - apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: hawkular-exporter-config
+    labels:
+      app: hawkular-exporter
+  data:
+    config.yaml: |
+      debug: False
+
+      projects:
+        - myproject
+
+      collect_metrics:
+        - cpu/request
+        - cpu/usage_rate
+        - memory/request
+        - memory/usage
+        - network/rx_rate
+        - network/tx_rate
+
+      metric_units:
+        cpu/request: milicores
+        cpu/usage_rate: milicores
+        memory/request: bytes
+        memory/usage: bytes
+        network/rx_rate: bits
+        network/tx_rate: bits
+
+      http_server:
+        port: 8080
+
+      hawkular_client:
+        concurrency: 10
+        scheme: https
+        port: 443
+        path: hawkular/metrics
+
+- apiVersion: v1
   kind: ImageStream
   metadata:
     labels:
@@ -151,43 +189,5 @@ objects:
       deploymentconfig: hawkular-exporter
     sessionAffinity: None
     type: ClusterIP
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: hawkular-exporter-config
-    labels:
-      app: hawkular-exporter
-  data:
-    config.yaml: |
-      debug: False
 
-      tenants:
-        - hawkular-exporter
-        - openshift-infra
-        - default
-
-      collect_metrics:
-        - cpu/request
-        - cpu/usage_rate
-        - memory/request
-        - memory/usage
-        - network/rx_rate
-        - network/tx_rate
-
-      metric_units:
-        cpu/request: milicores
-        cpu/usage_rate: milicores
-        memory/request: bytes
-        memory/usage: bytes
-        network/rx_rate: bits
-        network/tx_rate: bits
-
-      http_server:
-        port: 8080
-
-      hawkular_client:
-        concurrency: 10
-        scheme: https
-        port: 443
-        path: hawkular/metrics
 
