@@ -160,7 +160,12 @@ objects:
   data:
     config.yaml: |
       debug: True
-      
+
+      tenants:
+        - hawkular-exporter
+        - openshift-infra
+        - default
+
       collect_metrics:
         - cpu/request
         - cpu/usage_rate
