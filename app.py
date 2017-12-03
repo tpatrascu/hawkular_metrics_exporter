@@ -55,7 +55,7 @@ def get_metric_data(metric_definition):
         prometheus_labels = ''
 
     row = '{}{{pod_name="{}",namespace_name="{}",nodename="{}"{}}} {}\n'.format(
-        metric_definition['tags']['descriptor_name'],
+        metric_definition['tags']['descriptor_name'].replace('/', '_'),
         metric_definition['tags']['pod_name'],
         metric_definition['tags']['namespace_name'],
         metric_definition['tags']['nodename'],
