@@ -50,11 +50,11 @@ def get_metric_data(metric_definition):
         prometheus_labels = ''
         for k, v in labels.items():
             prometheus_labels += '{}="{}",'.format(k, v)
-        prometheus_labels = ',{},'.format(prometheus_labels)[:-1]
+        prometheus_labels = prometheus_labels[:-1]
     except IndexError:
         prometheus_labels = ''
 
-    row = '{}{{pod_name="{}",namespace_name="{}",nodename="{}"{}}} {}\n'.format(
+    row = '{}{{pod_name="{}",namespace_name="{}",nodename="{}",{}}} {}\n'.format(
         metric_definition['tags']['descriptor_name'].replace('/', '_'),
         metric_definition['tags']['pod_name'],
         metric_definition['tags']['namespace_name'],
