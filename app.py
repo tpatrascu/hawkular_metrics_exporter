@@ -61,8 +61,11 @@ def get_metric_data(metric_definition):
         prometheus_labels = ''
 
     prometheus_metric_name = metric_definition['tags']['descriptor_name']
-    if 'units' in metric_definition['tags']:
-        prometheus_metric_name = '{}_{}'.format(prometheus_metric_name, metric_definition['tags']['units'])
+    if metric_definition['tags']['descriptor_name'] in config['metric_units']:
+        prometheus_metric_name = '{}_{}'.format(
+            metric_definition['tags']['descriptor_name'],
+            config['metric_units'][metric_definition['tags']['descriptor_name']]
+        )
 
     row = '{}{{pod_name="{}",namespace_name="{}",nodename="{}",{}}} {}\n'.format(
         ensure_prometheus_format(prometheus_metric_name),
@@ -77,6 +80,15 @@ def get_metric_data(metric_definition):
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    def log_request(self, code='-', size='-'):
+        if config['debug']:
+            self.log_message('"%s" %s %s',
+                            self.requestline, str(code), str(size))
+
+    def log_error(self, format, *args):
+        if config['debug']:
+            self.log_message(format, *args)
+    
     def do_GET(self):
         response_code = 200
 
@@ -93,7 +105,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 try:
                     data = future.result()
                 except Exception as exc:
-                    print('Error getting metrics definitions for tenant_name %r: %s' % (tenant_name, exc))
+                    if config['debug']:
+                        print('Error getting metrics definitions for tenant_name %r: %s' % (tenant_name, exc))
                     response_code = 500
                 else:
                     for item in data:
@@ -110,7 +123,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 try:
                     data = future.result()
                 except Exception as exc:
-                    print('Error getting metrics for %r: %s' % (metric_definition_name, exc))
+                    if config['debug']:
+                        print('Error getting metrics for %r: %s' % (metric_definition_name, exc))
                     response_code = 500
                 else:
                     metric_data_queue.append(data)
@@ -119,7 +133,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_response(response_code)
         self.send_header('Content-Type', 'text/plain; version=0.0.4')
         self.end_headers()
-        self.wfile.write(http_response.encode('ascii', 'replace'))
+        self.wfile.write(http_response.encode())
 
 
 class MyServer(socketserver.TCPServer):
