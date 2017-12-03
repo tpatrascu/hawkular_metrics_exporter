@@ -27,7 +27,7 @@ def hawkular_client(tenant_id='default'):
         path=config['hawkular_client']['path'],
         token=sa_token)
 
-def ensure_prometheus_format(prometheus_name)
+def ensure_prometheus_format(prometheus_name):
     """ Remove invalid characters from prometheus metric and label names """
     # TODO replace all characters that don't conform to
     # metrics names: [a-zA-Z_:]([a-zA-Z0-9_:])*
