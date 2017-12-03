@@ -27,6 +27,12 @@ def hawkular_client(tenant_id='default'):
         path=config['hawkular_client']['path'],
         token=sa_token)
 
+def ensure_prometheus_format(prometheus_name)
+    """ Remove invalid characters from prometheus metric and label names """
+    # TODO replace all characters that don't conform to
+    # metrics names: [a-zA-Z_:]([a-zA-Z0-9_:])*
+    # labels: [a-zA-Z_]([a-zA-Z0-9_])*
+    return prometheus_name.replace('/', '_').replace('-', '_').replace('.', '_')
 
 def get_metric_definitions(tenant_id):
     hawkular_resp = hawkular_client(tenant_id).query_metric_definitions()
@@ -49,13 +55,17 @@ def get_metric_data(metric_definition):
 
         prometheus_labels = ''
         for k, v in labels.items():
-            prometheus_labels += '{}="{}",'.format(k.replace('/', '_').replace('-', '_').replace('.', '_'), v)
+            prometheus_labels += '{}="{}",'.format(ensure_prometheus_format(k), v)
         prometheus_labels = prometheus_labels[:-1]
     except IndexError:
         prometheus_labels = ''
 
+    prometheus_metric_name = metric_definition['tags']['descriptor_name']
+    if 'units' in metric_definition['tags']:
+        prometheus_metric_name = '{}_{}'.format(prometheus_metric_name, metric_definition['tags']['units'])
+
     row = '{}{{pod_name="{}",namespace_name="{}",nodename="{}",{}}} {}\n'.format(
-        metric_definition['tags']['descriptor_name'].replace('/', '_'),
+        ensure_prometheus_format(prometheus_metric_name),
         metric_definition['tags']['pod_name'],
         metric_definition['tags']['namespace_name'],
         metric_definition['tags']['nodename'],

@@ -159,7 +159,7 @@ objects:
       app: hawkular-exporter
   data:
     config.yaml: |
-      debug: True
+      debug: False
 
       tenants:
         - hawkular-exporter
