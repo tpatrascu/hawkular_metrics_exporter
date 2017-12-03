@@ -109,7 +109,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_response(response_code)
         self.send_header('Content-Type', 'text/plain; version=0.0.4')
         self.end_headers()
-        self.wfile.write(http_response.encode())
+        self.wfile.write(http_response.encode('ascii', 'replace'))
 
 
 class MyServer(socketserver.TCPServer):
