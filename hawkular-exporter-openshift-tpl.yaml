@@ -1,0 +1,184 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: hawkular-exporter
+parameters:
+  - name: SOURCE_REPOSITORY_URL 
+    displayName: Source Repository URL 
+    description: The URL of the repository with your application source code 
+    value: https://github.com/tpatrascu/hawkular_metrics_exporter
+    required: true
+  - name: HAWKULAR_HOSTNAME 
+    displayName: Hawkular Metrics route hostname 
+    value: hawkular-metrics-openshift-infra.192.168.100.8.nip.io
+    required: true
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      app: hawkular-exporter
+    name: hawkular-exporter
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: hawkular-exporter:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      git:
+        ref: master
+        uri: ${SOURCE_REPOSITORY_URL}
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: python:3.5
+          namespace: openshift
+      type: Source
+    triggers:
+    - generic:
+        secret: d7a56f84457fd841
+      type: Generic
+    - github:
+        secret: 2550fe38c1201824
+      type: GitHub
+    - imageChange: {}
+      type: ImageChange
+    - type: ConfigChange
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    labels:
+      app: hawkular-exporter
+    name: hawkular-exporter
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: hawkular-exporter
+    name: hawkular-exporter
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: hawkular-exporter
+    name: hawkular-exporter
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: hawkular-exporter
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: hawkular-exporter
+          deploymentconfig: hawkular-exporter
+      spec:
+        serviceAccount: hawkular-exporter
+        serviceAccountName: hawkular-exporter
+        containers:
+        - image: 
+          imagePullPolicy: Always
+          name: hawkular-exporter
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env:
+          - name: HAWKULAR_HOSTNAME
+            value: ${HAWKULAR_HOSTNAME}
+          volumeMounts:
+          - name: hawkular-exporter-config
+            mountPath: /etc/config.yaml
+            subPath: config.yaml
+          - name: hawkular-exporter-cacert
+            mountPath: /etc/ssl/certs/ca-bundle.crt
+            subPath: ca.pem
+            readOnly: true
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        volumes:
+        - name: hawkular-exporter-config
+          configMap:
+            name: hawkular-exporter-config
+        - name: hawkular-exporter-cacert
+          secret:
+            secretName: hawkular-exporter-cacert
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - hawkular-exporter
+        from:
+          kind: ImageStreamTag
+          name: hawkular-exporter:latest
+          namespace: hawkular-exporter
+      type: ImageChange
+    - type: ConfigChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: hawkular-exporter
+    name: hawkular-exporter
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: hawkular-exporter
+    sessionAffinity: None
+    type: ClusterIP
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: hawkular-exporter-config
+  data:
+    config.yaml: |
+      collect_metrics:
+        - cpu/request
+        - cpu/usage_rate
+        - memory/request
+        - memory/usage
+        - network/rx_rate
+        - network/tx_rate
+
+      tenants:
+        - hawkular-exporter
+        - default
+        - openshift-infra
+
+      http_server:
+        port: 8080
+
+      hawkular_client:
+        concurrency: 10
+        scheme: https
+        port: 443
+        path: hawkular/metrics
+
+
+
+

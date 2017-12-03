@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import yaml, json
-import argparse
+import yaml
+import os
 import http.server
 import socketserver
 import concurrent.futures
@@ -10,19 +10,22 @@ from collections import deque
 from hawkular.metrics import HawkularMetricsClient, MetricType
 
 
-config = {}
-with open('config.yaml') as f:
+hawkular_hostname = os.environ['HAWKULAR_HOSTNAME']
+
+with open('/etc/config.yaml') as f:
     config = yaml.load(f)
+with open('/var/run/secrets/kubernetes.io/serviceaccount/token') as f:
+    sa_token = f.read()
 
 
 def hawkular_client(tenant_id=''):
     return HawkularMetricsClient(
         tenant_id=tenant_id,
         scheme=config['hawkular_client']['scheme'],
-        host=config['hawkular_client']['host'],
+        host=hawkular_hostname,
         port=config['hawkular_client']['port'],
         path=config['hawkular_client']['path'],
-        token=config['hawkular_client']['token'])
+        token=sa_token)
 
 
 def get_metric_definitions(tenant_id):

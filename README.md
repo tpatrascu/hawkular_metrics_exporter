@@ -1,0 +1,1 @@
+oc -n hawkular-exporter secrets new hawkular-exporter-cacert ca.pem=/var/lib/origin/openshift.local.config/master/ca.crt
