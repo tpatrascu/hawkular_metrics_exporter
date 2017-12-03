@@ -1,11 +1,11 @@
 # Hawkular Metrics Prometheus exporter
 
-##### Description
+## Description
 
 Authenticates to Hawkular Metrics using a service account and grabs metrics for tenants specified in it's ConfigMap.
 Set ''debug: True'' in the ConfigMap to see if there are any errors, by default no errors are logged.
 
-##### Install instructions
+## Install instructions
 
 1. Create secret for Hawkular Metrics endpoint trusted CA certificate
 ```
