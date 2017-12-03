@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import yaml
+import yaml, json
 import os
 import http.server
 import socketserver
@@ -33,6 +33,9 @@ def get_metric_definitions(tenant_id):
     metric_definitions = [x for x in hawkular_resp
                           if x['tags']['type'] == 'pod'
                           and x['tags']['descriptor_name'] in config['collect_metrics']]
+
+    print(json.dumps(hawkular_resp))
+    
     return metric_definitions
 
 
