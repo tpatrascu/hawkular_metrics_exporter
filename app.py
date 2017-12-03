@@ -49,7 +49,7 @@ def get_metric_data(metric_definition):
 
         prometheus_labels = ''
         for k, v in labels.items():
-            prometheus_labels += '{}="{}",'.format(k, v.replace('/', '_').replace('-', '_'))
+            prometheus_labels += '{}="{}",'.format(k.replace('/', '_').replace('-', '_'), v)
         prometheus_labels = prometheus_labels[:-1]
     except IndexError:
         prometheus_labels = ''
