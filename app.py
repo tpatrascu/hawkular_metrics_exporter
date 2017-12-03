@@ -70,9 +70,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         response_code = 200
 
+        tenant_ids = [x['id'] for x in hawkular_client().query_tenants()]
+        if config['debug']:
+            print("Scraping tenants: {}", tenant_ids)
+
         metric_definitions_queue = deque()
+        metric_data_queue = deque()
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=config['hawkular_client']['concurrency']) as executor:
-            future_to_metric_definitions = {executor.submit(get_metric_definitions, tenant_id): tenant_id for tenant_id in config['tenants']}
+            # get metric definitions in parallel
+            future_to_metric_definitions = {executor.submit(get_metric_definitions, tenant_id):
+                tenant_id for tenant_id in tenant_ids
+            }
             for future in concurrent.futures.as_completed(future_to_metric_definitions):
                 tenant_name = future_to_metric_definitions[future]
                 try:
@@ -84,10 +93,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     for item in data:
                         metric_definitions_queue.append(item)
 
-        metric_data_queue = deque()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=config['hawkular_client']['concurrency']) as executor:
-            future_to_metric_data = {executor.submit(
-                get_metric_data, metric_definition): metric_definition for metric_definition in list(metric_definitions_queue)
+            # get metric data in parallel
+            if config['debug']:
+                print("Getting data for metric definitions: {}", list(metric_definitions_queue))
+            future_to_metric_data = {executor.submit(get_metric_data, metric_definition):
+                metric_definition for metric_definition in list(metric_definitions_queue)
             }
             for future in concurrent.futures.as_completed(future_to_metric_data):
                 metric_definition_name = future_to_metric_data[future]['id']
