@@ -18,7 +18,7 @@ with open('/var/run/secrets/kubernetes.io/serviceaccount/token') as f:
     sa_token = f.read()
 
 
-def hawkular_client(tenant_id=''):
+def hawkular_client(tenant_id='default'):
     return HawkularMetricsClient(
         tenant_id=tenant_id,
         scheme=config['hawkular_client']['scheme'],
