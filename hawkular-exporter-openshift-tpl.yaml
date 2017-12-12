@@ -21,14 +21,15 @@ objects:
       app: hawkular-exporter
   data:
     config.yaml: |
-      debug: False
+      debug: True
 
       projects:
         - myproject
+        - hawkular-exporter
 
       collect_metrics:
         - cpu/request
-        - cpu/usage_rate
+        - cpu/usage
         - memory/request
         - memory/usage
         - network/rx_rate
@@ -36,13 +37,14 @@ objects:
 
       metric_units:
         cpu/request: milicores
-        cpu/usage_rate: milicores
+        cpu/usage: ns
         memory/request: bytes
         memory/usage: bytes
         network/rx_rate: bits
         network/tx_rate: bits
 
-      http_server:
+      prometheus_client:
+        namespace: container_
         port: 8080
 
       hawkular_client:

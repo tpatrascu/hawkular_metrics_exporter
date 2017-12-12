@@ -145,17 +145,17 @@ spec:
   type: ClusterIP
 
 ---
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: prometheus-route
-    labels:
-      app: prometheus
-  spec:
-    port:
-      targetPort: 9090-tcp
-    to:
-      kind: Service
-      name: prometheus-service
-      weight: 100
-    wildcardPolicy: None
+apiVersion: v1
+kind: Route
+metadata:
+  name: prometheus-route
+  labels:
+    app: prometheus
+spec:
+  port:
+    targetPort: 9090-tcp
+  to:
+    kind: Service
+    name: prometheus-service
+    weight: 100
+  wildcardPolicy: None

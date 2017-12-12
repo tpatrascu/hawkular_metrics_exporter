@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import yaml, json
+import yaml
 import os
-import http.server
-import socketserver
+import time
+from collections import OrderedDict
+
+from prometheus_client import start_http_server
+from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, REGISTRY
+
+from hawkular.metrics import HawkularMetricsClient, MetricType
+
 import concurrent.futures
 from collections import deque
-from hawkular.metrics import HawkularMetricsClient, MetricType
 
 
 hawkular_hostname = os.environ['HAWKULAR_HOSTNAME']
@@ -46,19 +51,14 @@ def get_metric_data(metric_definition):
     hawkular_resp = hawkular_client(metric_definition['tags']['namespace_name']).query_metric(
         MetricType.Gauge, metric_definition['id'], limit=1)
         
-    # parse hawkular labels and convert to prometheus format
+    # parse hawkular labels
     try:
         metric_definition_labels = metric_definition['tags']['labels'].split(',')
-        labels = {k: v for (k, v) in zip(
+        metric_meta_labels = OrderedDict((k, v) for (k, v) in zip(
                 [x.split(':')[0] for x in metric_definition_labels],
-                [x.split(':')[1] for x in metric_definition_labels])}
-
-        prometheus_labels = ''
-        for k, v in labels.items():
-            prometheus_labels += '{}="{}",'.format(ensure_prometheus_format(k), v)
-        prometheus_labels = prometheus_labels[:-1]
+                [x.split(':')[1] for x in metric_definition_labels]))
     except IndexError:
-        prometheus_labels = ''
+        metric_meta_labels = {}
 
     prometheus_metric_name = metric_definition['tags']['descriptor_name']
     if metric_definition['tags']['descriptor_name'] in config['metric_units']:
@@ -67,33 +67,25 @@ def get_metric_data(metric_definition):
             config['metric_units'][metric_definition['tags']['descriptor_name']]
         )
 
-    row = '{}{{pod_name="{}",namespace_name="{}",nodename="{}",{}}} {}\n'.format(
-        ensure_prometheus_format(prometheus_metric_name),
-        metric_definition['tags']['pod_name'],
-        metric_definition['tags']['namespace_name'],
-        metric_definition['tags']['nodename'],
-        prometheus_labels,
-        hawkular_resp[0]['value'],
+    default_labels = OrderedDict([
+        ('pod_name', metric_definition['tags']['pod_name']),
+        ('namespace_name', metric_definition['tags']['namespace_name']),
+        ('nodename', metric_definition['tags']['nodename']),
+    ])
+
+    metric_family = GaugeMetricFamily(
+        config['prometheus_client']['namespace'] + ensure_prometheus_format(prometheus_metric_name),
+        '',
+        labels=list(default_metric_labels.keys()) + list(metric_meta_labels.keys())
     )
+    metric_family.add_metric(
+        list(default_metric_labels.values()) + list(metric_meta_labels.values()), hawkular_resp[0]['value'])
+    return metric_family
 
-    return row
 
-
-class Handler(http.server.SimpleHTTPRequestHandler):
-    def log_request(self, code='-', size='-'):
-        if config['debug']:
-            self.log_message('"%s" %s %s',
-                            self.requestline, str(code), str(size))
-
-    def log_error(self, format, *args):
-        if config['debug']:
-            self.log_message(format, *args)
-    
-    def do_GET(self):
-        response_code = 200
-
+class CAdvisorCollector(object):
+    def collect(self):
         metric_definitions_queue = deque()
-        metric_data_queue = deque()
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=config['hawkular_client']['concurrency']) as executor:
             # get metric definitions in parallel
@@ -121,24 +113,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             for future in concurrent.futures.as_completed(future_to_metric_data):
                 metric_definition_name = future_to_metric_data[future]['id']
                 try:
-                    data = future.result()
+                    metric = future.result()
                 except Exception as exc:
                     if config['debug']:
                         print('Error getting metrics for %r: %s' % (metric_definition_name, exc))
                     response_code = 500
                 else:
-                    metric_data_queue.append(data)
-
-        http_response = ''.join(list(metric_data_queue))
-        self.send_response(response_code)
-        self.send_header('Content-Type', 'text/plain; version=0.0.4')
-        self.end_headers()
-        self.wfile.write(http_response.encode())
+                    yield metric
 
 
-class MyServer(socketserver.TCPServer):
-    allow_reuse_address = True
-
-print('Server listening on port {}...'.format(config['http_server']['port']))
-httpd = MyServer(('', config['http_server']['port']), Handler)
-httpd.serve_forever()
+if __name__ == "__main__":
+    start_http_server(config['prometheus_client']['port'])
+    print('Listening on port {}'.format(config['prometheus_client']['port']))
+    REGISTRY.register(CAdvisorCollector())
+    while True: time.sleep(1)
